@@ -1,0 +1,32 @@
+#==========================
+# Filename: makebeamerinfo
+# Author: Joel Berger
+# Author's Email: joel.a.berger <at> gmail <dot> com
+# Revision Date: Oct. 12, 2009
+# Version: 1.0
+#
+# Description: Perl script to take the .nav file from a LaTeX Beamer based presentation and create the .info file for
+#              use with Impress!ve (http://impressive.sourceforge.net/).
+#
+#              Specifically it is intended to remove all intermediate pages from the overview and create a different 
+#              transition for the new frame. It is set up to create a visually interesting but clean presentation without
+#              any information of what is being displayed (i.e. no markers in the .tex file as gettransitions does). This
+#              allows one to use a Beamer presentation that was not specifically created for Impress!ve.
+#
+# License: GPLv3 or any later version. See http://www.gnu.org/licenses/ for more information.
+#
+#   Copyright (C) 2009 Joel Berger
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>
+#
