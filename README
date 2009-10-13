@@ -30,3 +30,12 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
+
+Description: Creates .info file for use with Impress!ve for presentations created with LaTeX Beamer.
+
+Usage: makebeamerinfo base_filename [subfolder]
+
+Options: Use optional subfolder argument if the .nav file resides in a subfolder of the base directory. This is useful if your compiler cleans up after compiling.
+
+For Example: To make a .info file for "document.pdf" whose document.nav file resides in subfolder "tmp" use command:
+	$makebeamerinfo document tmp
