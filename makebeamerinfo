@@ -3,8 +3,8 @@
 # Filename: makebeamerinfo
 # Author: Joel Berger
 # Author's Email: joel.a.berger <at> gmail <dot> com
-# Revision Date: Oct. 12, 2009
-# Version: 1.0
+# Revision Date: Oct. 13, 2009
+# Version: 1.1
 #
 # Description: Perl script to take the .nav file from a LaTeX Beamer based presentation and create the .info file for
 #              use with Impress!ve (http://impressive.sourceforge.net/).
@@ -13,6 +13,11 @@
 #              transition for the new frame. It is set up to create a visually interesting but clean presentation without
 #              any information of what is being displayed (i.e. no markers in the .tex file as gettransitions does). This
 #              allows one to use a Beamer presentation that was not specifically created for Impress!ve.
+#
+# Requirements: - Perl for running the script
+#               - A presentation created in LaTeX-Beamer (http://latex-beamer.sourceforge.net/) - this script will not 
+#                 work for any other presentation preparation scheme!
+#               - Impress!ve for using the .info once you have it
 #
 # License: GPLv3 or any later version. See http://www.gnu.org/licenses/ for more information.
 #
@@ -31,13 +36,18 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
+# Change Log:
+# v1.1: Added Section and Subsection titles
+#       Comment out $Allowed_Transititons definition to use Impress!ve default transitions
+#       Added Requirements and User Definitions to header, empty command output and README
+#
 #==========================
 # User Definitions
 #
 # Modify the following to your preference:
 # Define new frame transition
 $Frame_Transition = "PageTurn";
-# Define allowed intermediate transitions
+# Define allowed intermediate transitions (Comment out this definition (put a # in front) to use Impress!ve's default allowed transitions)
 # Example: "WipeRight,WipeLeft"
 $Allowed_Transitions = "WipeRight";
 #==========================
@@ -46,7 +56,7 @@ $Allowed_Transitions = "WipeRight";
 
 # If no arguments, print usage statement
 if ($#ARGV == -1) {
-  print "\nDescription: Creates .info file for use with Impress!ve for\n             presentations created with LaTeX Beamer.\n\nUsage: makebeamerinfo base_filename [subfolder]\n\nOptions: Use optional subfolder argument if the .nav file resides in a\n         subfolder of the base directory. This is useful if your compiler\n         cleans up after compiling.\n\nFor Example: To make a .info file for \"document.pdf\" whose\n             document.nav file resides in subfolder \"tmp\" use command:\n             \$makebeamerinfo document tmp\n\nCopyright (C) 2009 Joel Berger\nLicensed under the terms of the GPL version 3 or any later version\n\n";
+  print "\nDescription: Creates .info file for use with Impress!ve for\n             presentations created with LaTeX Beamer.\n\nUsage: makebeamerinfo base_filename [subfolder]\n\nOptions: Use optional subfolder argument if the .nav file resides in a\n         subfolder of the base directory. This is useful if your compiler\n         cleans up after compiling.\n\n  For Example: To make a .info file for \"document.pdf\" whose\n               document.nav file resides in subfolder \"tmp\" use command:\n               \$makebeamerinfo document tmp\n\n         Other options can be set in the script itself under \"User Options\"\n\nCopyright (C) 2009 Joel Berger\nLicensed under the terms of the GPL version 3 or any later version\n\n";
   exit;
 }
 # For one or two arguments, define .nav file
@@ -68,8 +78,23 @@ if (-e $INPUT_NAVFILE) {
 open (INFOFILE, ">$ARGV[0].pdf.info");
 
 # Lets do PageProps first
+# Initialize $Section_Number $SubSection_Number
+#$Section_Title = "";
+$Section_Number = "0";
+#$SubSection_Title = "";
+$SubSection_Number = "0";
 print INFOFILE "PageProps = {\n";
 while (<NAVFILE>) {
+# Find Section titles and page numbers (this queues a title waiting to be printed by making $Section_Number!=0
+  if($_ =~ m/\\sectionentry {\d+}{([\w\s]+)}{(\d+)}.*/) {
+    $Section_Title = $1;
+    $Section_Number = $2;
+  }
+# Find SubSection titles and page numbers (this queues a title waiting to be printed by making $SubSection_Number!=0
+  if($_ =~ m/\@subsectionentry {\d+}{\d+}{\d+}{(\d+)}{([\w\s]+)}.*/) {
+    $SubSection_Number = $1;
+    $SubSection_Title = $2;
+  }
 # Read only lines with "framepages" and get begin and end frame numbers  
   if($_ =~ m/framepages {(\d+)}{(\d+)}/) {
 # Initialize $index for intermediate frame pages
@@ -81,8 +106,22 @@ while (<NAVFILE>) {
       print INFOFILE "\t},\n";
       $index ++;
     }
-# For final page of frame give 'transition' property
+# For final page of frame:
       print INFOFILE "  $2:\t{\n";
+# If there is a subsection title waiting (and by extension if there is also a section title simultaneously) to be printed then write it
+      if ($SubSection_Number != "0") {
+        print INFOFILE "\t  \'title\': \"$Section_Title: $SubSection_Title\",\n";
+# Reset $Section_Number and $Subsection_Number to 0 to reset title queue for the next frame
+        $Section_Number = "0";
+        $SubSection_Number = "0";
+      }
+# If there is still a section title waiting to be printed (alone) then write it
+      if ($Section_Number != "0") {
+        print INFOFILE "\t  \'title\': \"$Section_Title\",\n";
+# Reset $Section_Number to 0 to reset title queue for the next frame
+        $Section_Number = "0";
+      }
+# Give 'transition' property
       print INFOFILE "\t  \'transition\': $Frame_Transition,\n";
       print INFOFILE "\t},\n";
   }
@@ -91,6 +130,10 @@ print INFOFILE "}\n";
 # Now lets do overall properties
 print INFOFILE "AvailableTransitions = [$Allowed_Transitions]";
 
+# Now lets do overall properties (if desired)
+if (defined $Allowed_Transitions) { 
+  print INFOFILE "AvailableTransitions = [$Allowed_Transitions]";
+}
 # Close files
 close (NAVFILE);
 close (INFOFILE);
