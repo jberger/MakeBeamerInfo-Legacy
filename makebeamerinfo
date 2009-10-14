@@ -3,8 +3,8 @@
 # Filename: makebeamerinfo
 # Author: Joel Berger
 # Author's Email: joel.a.berger <at> gmail <dot> com
-# Revision Date: Oct. 13, 2009
-# Version: 1.1
+# Revision Date: Oct. 14, 2009
+# Version: 1.1.1
 #
 # Description: Perl script to take the .nav file from a LaTeX Beamer based presentation and create the .info file for
 #              use with Impress!ve (http://impressive.sourceforge.net/).
@@ -37,9 +37,11 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 # Change Log:
-# v1.1: Added Section and Subsection titles
-#       Comment out $Allowed_Transititons definition to use Impress!ve default transitions
-#       Added Requirements and User Definitions to header, empty command output and README
+# v1.1.1: Increased cross-platform portability
+#
+# v1.1:   Added Section and Subsection titles
+#         Comment out $Allowed_Transititons definition to use Impress!ve default transitions
+#         Added Requirements and User Definitions to header, empty command output and README
 #
 #==========================
 # User Definitions
@@ -54,6 +56,9 @@ $Allowed_Transitions = "WipeRight";
 # Perl Script
 #
 
+# Load package to increase portability
+use File::Spec::Functions;
+
 # If no arguments, print usage statement
 if ($#ARGV == -1) {
   print "\nDescription: Creates .info file for use with Impress!ve for\n             presentations created with LaTeX Beamer.\n\nUsage: makebeamerinfo base_filename [subfolder]\n\nOptions: Use optional subfolder argument if the .nav file resides in a\n         subfolder of the base directory. This is useful if your compiler\n         cleans up after compiling.\n\n  For Example: To make a .info file for \"document.pdf\" whose\n               document.nav file resides in subfolder \"tmp\" use command:\n               \$makebeamerinfo document tmp\n\n         Other options can be set in the script itself under \"User Options\"\n\nCopyright (C) 2009 Joel Berger\nLicensed under the terms of the GPL version 3 or any later version\n\n";
@@ -64,7 +69,7 @@ if ($#ARGV == 0) {
   $INPUT_NAVFILE = "$ARGV[0].nav";
 }
 if ($#ARGV == 1) {
-  $INPUT_NAVFILE = "$ARGV[1]/$ARGV[0].nav";
+  $INPUT_NAVFILE = catfile("$ARGV[1]","$ARGV[0].nav");
 }
 # Check that the input file exists, then open
 if (-e $INPUT_NAVFILE) {
