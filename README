@@ -3,7 +3,7 @@
 # Author: Joel Berger
 # Author's Email: joel.a.berger <at> gmail <dot> com
 # Revision Date: Oct. 14, 2009
-# Version: 1.1.1
+# Version: 1.1.2
 #
 # Description: Perl script to take the .nav file from a LaTeX Beamer based presentation and create the .info file for
 #              use with Impress!ve (http://impressive.sourceforge.net/).
@@ -36,6 +36,8 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 # Change Log:
+# v1.1.2: Better regexp to find section and subsection names
+#
 # v1.1.1: Increased cross-platform portability
 #
 # v1.1:   Added Section and Subsection titles
