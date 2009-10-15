@@ -134,8 +134,6 @@ while (<NAVFILE>) {
   }
 }
 print INFOFILE "}\n";
-# Now lets do overall properties
-print INFOFILE "AvailableTransitions = [$Allowed_Transitions]";
 
 # Now lets do overall properties (if desired)
 if (defined $Allowed_Transitions) { 
