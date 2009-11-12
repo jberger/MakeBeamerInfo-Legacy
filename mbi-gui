@@ -1,0 +1,208 @@
+#!/usr/bin/perl
+#==========================
+# Filename: mbi-gui
+# Author: Joel Berger
+# Author's Email: joel.a.berger <at> gmail <dot> com
+# Revision Date: Nov. 12, 2009
+# Version: 1.2.0
+#
+# Description: Perl script to take the .nav file from a LaTeX Beamer based presentation and create the .info file for
+#              use with Impress!ve (http://impressive.sourceforge.net/).
+#
+#              Specifically it is intended to remove all intermediate pages from the overview and create a different 
+#              transition for the new frame. It is set up to create a visually interesting but clean presentation without
+#              any information of what is being displayed (i.e. no markers in the .tex file as gettransitions does). This
+#              allows one to use a Beamer presentation that was not specifically created for Impress!ve.
+#
+# Requirements: - Perl for running the scripts (binaries will work without Perl)
+#               - A presentation created in LaTeX-Beamer (http://latex-beamer.sourceforge.net/) - this script will not 
+#                 work for any other presentation preparation scheme!
+#               - Impress!ve for using the .info once you have it
+#
+# License: GPLv3 or any later version. See http://www.gnu.org/licenses/ for more information.
+#
+#   Copyright (C) 2009 Joel Berger
+#
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>
+#
+# Change Log:
+# v1.2.0: Forked into makebeamerinfo (CLI) and mbi-gui (GUI) made with Perl/Tk
+#	  Begin releasing packaged binaries using pp
+#
+# v1.1.3: Bugfix
+#
+# v1.1.2: Better regexp to find section and subsection names
+#
+# v1.1.1: Increased cross-platform portability
+#
+# v1.1:   Added Section and Subsection titles
+#         Comment out $Allowed_Transititons definition to use Impress!ve default transitions
+#         Added Requirements and User Definitions to header, empty command output and README
+#
+#==========================
+# User Definitions
+#
+# Modify the following to your preference:
+# Define new frame transition
+$Frame_Transition = "PageTurn";
+# Define allowed intermediate transitions (Comment out this definition (put a # in front) to use Impress!ve's default allowed transitions)
+# Example: "WipeRight,WipeLeft"
+$Allowed_Transitions = "WipeRight";
+#==========================
+# Perl Script
+#
+
+# Load package to increase portability
+use File::Spec::Functions;
+use Tk;
+
+#MainWindow
+my $mw = new MainWindow;
+
+my $label_loc_nav = $mw -> Label(-text=>"Location of \".nav\" file")
+	-> grid(-row=>1, -column=>1);
+my $label_loc_pdf = $mw -> Label(-text=>"Location of \".pdf\" file")
+	-> grid(-row=>2, -column=>1);
+my $loc_nav = $mw -> Entry() 
+	-> grid(-row=>1, -column=>2);
+my $loc_pdf = $mw -> Entry() 
+	-> grid(-row=>2, -column=>2);
+my $button_get_nav = $mw -> Button(
+		-text=>"Browse",
+		-command =>\&getNav
+		)
+	-> grid(-row=>1, -column=>3);
+my $button_get_pdf = $mw -> Button(
+		-text=>"Browse",
+		-command =>\&getPdf
+		)
+	-> grid(-row=>2, -column=>3);
+my $button_clear_nav = $mw -> Button(-text=>"Clear",
+		-command =>\&clearNav)
+	-> grid(-row=>1, -column=>4);
+my $button_clear_pdf = $mw -> Button(-text=>"Clear",
+		-command =>\&clearPdf)
+	-> grid(-row=>2, -column=>4);
+my $button_execute = $mw -> Button(-text=>"Create .info",
+		-command =>\&createInfo)
+	->grid(-row=>3, -column=>2);
+my $button_exit = $mw -> Button(-text=>"Exit",
+		-command =>\&exitProgram)
+	->grid(-row =>3, -column=>4);
+
+MainLoop;
+
+sub getNav {
+	$Nav_Holder = $mw -> getOpenFile();
+	$loc_nav -> delete(0,'end');
+	$loc_nav -> insert(0,$Nav_Holder);
+}
+
+sub getPdf {
+	$Pdf_Holder = $mw -> getOpenFile();
+	$loc_pdf -> delete(0,'end');
+	$loc_pdf -> insert(0,$Pdf_Holder);
+}
+
+sub clearNav {
+	$loc_nav -> delete(0,'end');
+}
+
+sub clearPdf {
+	$loc_pdf -> delete(0,'end');
+}
+
+
+sub createInfo {
+	$INPUT_NAVFILE = $loc_nav -> get();
+	$INPUT_PDFFILE = $loc_pdf -> get();
+
+	# Check that the input file exists, then open
+	if (-e $INPUT_NAVFILE) {
+	  open (NAVFILE, $INPUT_NAVFILE);
+#	  print "Using: $INPUT_NAVFILE\n";
+	} else {
+	  $mw -> messageBox(-message=>"Cannot find $INPUT_NAVFILE\nNo .info created!");
+	  return;
+	}
+	# Open .info file for writing
+	open (INFOFILE, ">$INPUT_PDFFILE.info");
+
+	# Lets do PageProps first
+	# Initialize $Section_Number $SubSection_Number
+	#$Section_Title = "";
+	$Section_Number = "0";
+	#$SubSection_Title = "";
+	$SubSection_Number = "0";
+	print INFOFILE "PageProps = {\n";
+	while (<NAVFILE>) {
+	# Find Section titles and page numbers (this queues a title waiting to be printed by making $Section_Number!=0
+	  if($_ =~ m/\\sectionentry {\d+}{([^\}]+)}{(\d+)}.*/) {
+	    $Section_Title = $1;
+	    $Section_Number = $2;
+	  }
+	# Find SubSection titles and page numbers (this queues a title waiting to be printed by making $SubSection_Number!=0
+	  if($_ =~ m/\@subsectionentry {\d+}{\d+}{\d+}{(\d+)}{([^\}]+)}.*/) {
+	    $SubSection_Number = $1;
+	    $SubSection_Title = $2;
+	  }
+	# Read only lines with "framepages" and get begin and end frame numbers  
+	  if($_ =~ m/framepages {(\d+)}{(\d+)}/) {
+	# Initialize $index for intermediate frame pages
+	    $index = $1;
+	# Cycle through only intermediate frames and give them 'overview': False
+	    while($index < $2) {
+	      print INFOFILE "  $index:\t{\n";
+	      print INFOFILE "\t  \'overview\': False,\n";
+	      print INFOFILE "\t},\n";
+	      $index ++;
+	    }
+	# For final page of frame:
+	      print INFOFILE "  $2:\t{\n";
+	# If there is a subsection title waiting (and by extension if there is also a section title simultaneously) to be printed then write it
+	      if ($SubSection_Number != "0") {
+	        print INFOFILE "\t  \'title\': \"$Section_Title: $SubSection_Title\",\n";
+	# Reset $Section_Number and $Subsection_Number to 0 to reset title queue for the next frame
+	        $Section_Number = "0";
+	        $SubSection_Number = "0";
+	      }
+	# If there is still a section title waiting to be printed (alone) then write it
+	      if ($Section_Number != "0") {
+	        print INFOFILE "\t  \'title\': \"$Section_Title\",\n";
+	# Reset $Section_Number to 0 to reset title queue for the next frame
+	        $Section_Number = "0";
+	      }
+	# Give 'transition' property
+	      print INFOFILE "\t  \'transition\': $Frame_Transition,\n";
+	      print INFOFILE "\t},\n";
+	  }
+	}
+	print INFOFILE "}\n";
+
+	# Now lets do overall properties (if desired)
+	if (defined $Allowed_Transitions) { 
+	  print INFOFILE "AvailableTransitions = [$Allowed_Transitions]";
+	}
+	# Close files
+	close (NAVFILE);
+	close (INFOFILE);
+
+	$mw -> messageBox(-message=>"Created .info!\nGoodbye!");
+	exit;
+}
+
+sub exitProgram {
+	$mw -> messageBox(-message=>"No .info created!");
+	exit;
+}
