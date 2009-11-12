@@ -50,15 +50,16 @@
 #         Comment out $Allowed_Transititons definition to use Impress!ve default transitions
 #         Added Requirements and User Definitions to header, empty command output and README
 #
+$Website = 'http://code.google.com/p/makebeamerinfo/';
 #==========================
 # User Definitions
 #
 # Modify the following to your preference:
 # Define new frame transition
 $Frame_Transition = "PageTurn";
-# Define allowed intermediate transitions (Comment out this definition (put a # in front) to use Impress!ve's default allowed transitions)
+# Define the "Clean" allowed intermediate transitions
 # Example: "WipeRight,WipeLeft"
-$Allowed_Transitions = "WipeRight";
+$Clean_Transitions = "WipeRight";
 #==========================
 # Perl Script
 #
@@ -67,7 +68,7 @@ $Allowed_Transitions = "WipeRight";
 use File::Spec::Functions;
 use Tk;
 
-#MainWindow
+#Create and populate the MainWindow $mw
 my $mw = new MainWindow;
 $mw -> title( 'Makebeamerinfo' );
 
@@ -95,12 +96,28 @@ my $button_clear_nav = $mw -> Button(-text=>"Clear",
 my $button_clear_pdf = $mw -> Button(-text=>"Clear",
 		-command =>\&clearPdf)
 	-> grid(-row=>2, -column=>4);
+
+my $label_radio = $mw -> Label (-text=>"Intraframe transition set:")
+	-> grid(-row=>3, -column=>1);
+my $radio_default = $mw -> Radiobutton( -text=>"Default",
+		-value=>"0", -variable=>\$Use_Clean)
+	->grid(-row=>3, -column=>2);
+my $radio_clean = $mw -> Radiobutton( -text=>"Clean  ",
+		-value=>"1", -variable=>\$Use_Clean)
+	->grid(-row=>4, -column=>2);
+$radio_clean ->select();
+
 my $button_execute = $mw -> Button(-text=>"Create .info",
 		-command =>\&createInfo)
-	->grid(-row=>3, -column=>2);
+	->grid(-row=>5, -column=>1);
+my $button_about = $mw -> Button( -text=>"About",
+		-command =>\&aboutMBI)
+	->grid(-row=>5, -column=>3);
 my $button_exit = $mw -> Button(-text=>"Exit",
 		-command =>\&exitProgram)
-	->grid(-row =>3, -column=>4);
+	->grid(-row =>5, -column=>4);
+
+#Specify the filetypes for the two getOpenFile commands
 
 my @nav_types = (["Nav Files", '.nav', 'TEXT'],
        ["All Files", "*"] );
@@ -111,41 +128,51 @@ my @pdf_types = (["Pdf Files", '.pdf', 'PDF'],
 
 MainLoop;
 
-sub getNav {
+sub getNav { # sub for opening a dialog to specify the .nav file and place in entry space; if possible also find .pdf
 	$Nav_Holder = $mw -> getOpenFile(-filetypes=>\@nav_types);
-	$loc_nav -> delete(0,'end');
-	$loc_nav -> insert(0,$Nav_Holder);
+	unless ($Nav_Holder) { #Check that a file was selected
+	  return; #Or else return unchanged
+	} else { #but if specified place in $loc_nav
+	  $loc_nav -> delete(0,'end');
+	  $loc_nav -> insert(0,$Nav_Holder);
 
-	($Nav_Vol,$Nav_Dirs,$Nav_File) = File::Spec->splitpath("$Nav_Holder");
-	if($Nav_File =~ /([^.]+)/) {
-	  $File_Stem = $1 ;
-	  $Pdf_Test_Local_Dir = File::Spec->catpath($Nav_Vol,$Nav_Dirs);
-	  $Pdf_Test_Local = catfile($Pdf_Test_Local_Dir,"$File_Stem.pdf");
-	  $Pdf_Test_Parent = catfile($Pdf_Test_Local_Dir,updir,"$File_Stem.pdf");
+	  # if specified then try to find .pdf in either the same dir or the parent dir
+	  ($Nav_Vol,$Nav_Dirs,$Nav_File) = File::Spec->splitpath("$Nav_Holder");
+	  if($Nav_File =~ /([^.]+)/) {
+	    $File_Stem = $1 ;
+	    $Pdf_Test_Local_Dir = File::Spec->catpath($Nav_Vol,$Nav_Dirs);
+	    $Pdf_Test_Local = catfile($Pdf_Test_Local_Dir,"$File_Stem.pdf");
+	    $Pdf_Test_Parent = catfile($Pdf_Test_Local_Dir,updir,"$File_Stem.pdf");
+	  };
+	  if ( -e "$Pdf_Test_Local") { #if found locally
+	    $loc_pdf -> delete(0,'end');
+	    $loc_pdf -> insert(0,"$Pdf_Test_Local"); #place in $loc_pdf
+	  } elsif ( -e "$Pdf_Test_Parent") { #if found in parent
+	    $loc_pdf -> delete(0,'end');
+	    $loc_pdf -> insert(0,"$Pdf_Test_Parent");#place in $loc_pdf
+	  };
 	};
-	if ( -e "$Pdf_Test_Local") {
-	  $loc_pdf -> delete(0,'end');
-	  $loc_pdf -> insert(0,"$Pdf_Test_Local");
-	} elsif ( -e "$Pdf_Test_Parent") {
-	  $loc_pdf -> delete(0,'end');
-	  $loc_pdf -> insert(0,"$Pdf_Test_Parent");
-	}
 }
 
-sub getPdf {
+sub getPdf { # sub for opening a dialog to specify the .pdf file and place in entry space
 	$Pdf_Holder = $mw -> getOpenFile(-filetypes=>\@pdf_types);
-	$loc_pdf -> delete(0,'end');
-	$loc_pdf -> insert(0,$Pdf_Holder);
+	unless ($Pdf_Holder) { #Check that a file was selected
+	  return; #Or else return unchanged
+	} else { #but if specified place in $loc_pdf
+	  $loc_pdf -> delete(0,'end');
+	  $loc_pdf -> insert(0,$Pdf_Holder);
+	};
 }
 
-sub clearNav {
+sub clearNav { #clear entry
 	$loc_nav -> delete(0,'end');
 }
 
-sub clearPdf {
+sub clearPdf { #clear entry
 	$loc_pdf -> delete(0,'end');
 }
 
+# Here is the meat of the action; should me mostly similar to the CLI version
 sub createInfo {
 	$INPUT_NAVFILE = $loc_nav -> get();
 	$INPUT_PDFFILE = $loc_pdf -> get();
@@ -224,21 +251,25 @@ sub createInfo {
 	print INFOFILE "}\n";
 
 	# Now lets do overall properties (if desired)
-	if (defined $Allowed_Transitions) { 
-	  print INFOFILE "AvailableTransitions = [$Allowed_Transitions]";
+	if ($Use_Clean == 1) { 
+	  print INFOFILE "AvailableTransitions = [$Clean_Transitions]";
 	}
 	# Close files
 	close (NAVFILE);
 	close (INFOFILE);
 
-	if (-e "$INPUT_PDFFILE.info") {
+	if (-e "$INPUT_PDFFILE.info") { #if we wrote a .info
 	  $mw -> messageBox(-title=>"Goodbye", -message=>"Your .info file has been created!\nGoodbye!");
-	  exit;
-	} else {
+	  exit; #then inform and exit
+	} else { #if not then return to main window with error dialog
 #TODO check that this actually works (below)
 	  $mw -> messageBox(-title=>"Error", -message=>"No .info created!\nUnknown error occured\nDo you have permissions to write to this location?");
 	  return;
 	}
+}
+
+sub aboutMBI {
+	$mw -> messageBox(-title=>"About mbi-gui", -message=>"\nmbi-gui\nPart of the makebeamerinfo suite\n\nAuthor: Joel Berger\n\nReleased under the terms of the GPLv3 or any later version\nCopyright (c) 2009 Joel Berger\n\n$Website");
 }
 
 sub exitProgram {
