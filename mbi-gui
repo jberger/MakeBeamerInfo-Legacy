@@ -69,6 +69,7 @@ use Tk;
 
 #MainWindow
 my $mw = new MainWindow;
+$mw -> title( 'Makebeamerinfo' );
 
 my $label_loc_nav = $mw -> Label(-text=>"Location of \".nav\" file")
 	-> grid(-row=>1, -column=>1);
@@ -101,16 +102,38 @@ my $button_exit = $mw -> Button(-text=>"Exit",
 		-command =>\&exitProgram)
 	->grid(-row =>3, -column=>4);
 
+my @nav_types = (["Nav Files", '.nav', 'TEXT'],
+       ["All Files", "*"] );
+
+my @pdf_types = (["Pdf Files", '.pdf', 'PDF'],
+       ["All Files", "*"] );
+
+
 MainLoop;
 
 sub getNav {
-	$Nav_Holder = $mw -> getOpenFile();
+	$Nav_Holder = $mw -> getOpenFile(-filetypes=>\@nav_types);
 	$loc_nav -> delete(0,'end');
 	$loc_nav -> insert(0,$Nav_Holder);
+
+	($Nav_Vol,$Nav_Dirs,$Nav_File) = File::Spec->splitpath("$Nav_Holder");
+	if($Nav_File =~ /([^.]+)/) {
+	  $File_Stem = $1 ;
+	  $Pdf_Test_Local_Dir = File::Spec->catpath($Nav_Vol,$Nav_Dirs);
+	  $Pdf_Test_Local = catfile($Pdf_Test_Local_Dir,"$File_Stem.pdf");
+	  $Pdf_Test_Parent = catfile($Pdf_Test_Local_Dir,updir,"$File_Stem.pdf");
+	};
+	if ( -e "$Pdf_Test_Local") {
+	  $loc_pdf -> delete(0,'end');
+	  $loc_pdf -> insert(0,"$Pdf_Test_Local");
+	} elsif ( -e "$Pdf_Test_Parent") {
+	  $loc_pdf -> delete(0,'end');
+	  $loc_pdf -> insert(0,"$Pdf_Test_Parent");
+	}
 }
 
 sub getPdf {
-	$Pdf_Holder = $mw -> getOpenFile();
+	$Pdf_Holder = $mw -> getOpenFile(-filetypes=>\@pdf_types);
 	$loc_pdf -> delete(0,'end');
 	$loc_pdf -> insert(0,$Pdf_Holder);
 }
@@ -123,21 +146,31 @@ sub clearPdf {
 	$loc_pdf -> delete(0,'end');
 }
 
-
 sub createInfo {
 	$INPUT_NAVFILE = $loc_nav -> get();
 	$INPUT_PDFFILE = $loc_pdf -> get();
 
 	# Check that the input file exists, then open
-	if (-e $INPUT_NAVFILE) {
+	unless ($INPUT_NAVFILE) {
+	  $mw -> messageBox(-title=>"Error", -message=>"Please specify your \".nav\" file.\nNo .info created!");
+	  return;
+	} elsif (-e $INPUT_NAVFILE) {
 	  open (NAVFILE, $INPUT_NAVFILE);
 #	  print "Using: $INPUT_NAVFILE\n";
 	} else {
-	  $mw -> messageBox(-message=>"Cannot find $INPUT_NAVFILE\nNo .info created!");
+	  $mw -> messageBox(-title=>"Error", -message=>"Cannot find $INPUT_NAVFILE\nNo .info created!");
 	  return;
 	}
 	# Open .info file for writing
-	open (INFOFILE, ">$INPUT_PDFFILE.info");
+	unless ($INPUT_PDFFILE) {
+	  $mw -> messageBox(-title=>"Error", -message=>"Please specify your \".pdf\" file.\nNo .info created!");
+	  return;
+	} elsif (-e $INPUT_PDFFILE) {
+	  open (INFOFILE, ">$INPUT_PDFFILE.info");
+	} else {
+	  $mw -> messageBox(-title=>"Error", -message=>"Cannot find $INPUT_PDFFILE\nNo .info created!");
+	  return;
+	}
 
 	# Lets do PageProps first
 	# Initialize $Section_Number $SubSection_Number
@@ -198,11 +231,17 @@ sub createInfo {
 	close (NAVFILE);
 	close (INFOFILE);
 
-	$mw -> messageBox(-message=>"Created .info!\nGoodbye!");
-	exit;
+	if (-e "$INPUT_PDFFILE.info") {
+	  $mw -> messageBox(-title=>"Goodbye", -message=>"Your .info file has been created!\nGoodbye!");
+	  exit;
+	} else {
+#TODO check that this actually works (below)
+	  $mw -> messageBox(-title=>"Error", -message=>"No .info created!\nUnknown error occured\nDo you have permissions to write to this location?");
+	  return;
+	}
 }
 
 sub exitProgram {
-	$mw -> messageBox(-message=>"No .info created!");
+	$mw -> messageBox(-title=>"Goodbye", -message=>"No .info created!");
 	exit;
 }
