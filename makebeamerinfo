@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #==========================
-# Filename: makebeamerinfo
+# Filename: mbi-gui
 # Author: Joel Berger
 # Author's Email: joel.a.berger <at> gmail <dot> com
-# Revision Date: Nov. 12, 2009
-# Version: 1.2.0
+# Revision Date: Nov. 14, 2009
+# Version: 1.3.0
 #
 # Description: Perl script to take the .nav file from a LaTeX Beamer based presentation and create the .info file for
 #              use with Impress!ve (http://impressive.sourceforge.net/).
@@ -37,6 +37,10 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 # Change Log:
+# v1.3.0: Changed "Default" transitions behavior to only select overview:off
+#	  Added "Custom" transitions and selector window
+#	  Began use stict compliance
+#
 # v1.2.0: Forked into makebeamerinfo (CLI) and mbi-gui (GUI) made with Perl/Tk
 #	  Begin releasing packaged binaries using pp
 #
@@ -50,6 +54,7 @@
 #         Comment out $Allowed_Transititons definition to use Impress!ve default transitions
 #         Added Requirements and User Definitions to header, empty command output and README
 #
+my $Website = 'http://code.google.com/p/makebeamerinfo/';
 #==========================
 # User Definitions
 #
