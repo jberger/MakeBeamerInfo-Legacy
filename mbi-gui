@@ -341,7 +341,7 @@ sub createInfo {
 	        print INFOFILE "\t  \'transition\': $Custom_Frame_Transition,\n";
 	        print INFOFILE "\t},\n";
 	      } else {
-	        print INFOFILE "},\n";
+	        print INFOFILE "\n\t},\n";
 	      };
 	  }
 	}
