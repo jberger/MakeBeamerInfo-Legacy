@@ -239,10 +239,11 @@ sub openCustomWindow {
 
   };
 
-  my $info_1 = $cw -> Label ( -text=>"Select one frame transition" ) -> grid( -row => ($max_row +1), -column => 3 );
-  my $info_2 = $cw -> Label ( -text=>"And any intraframe transitions") -> grid( -row => ($max_row +1), -column => 6 );
+  my $info_1 = $cw -> Label ( -text=>"Select one frame transition\n(Radio Buttons)" ) -> grid( -row => ($max_row +1), -column => 3 );
+  my $info_2 = $cw -> Label ( -text=>"And any intraframe transitions\n(Check Boxes)") -> grid( -row => ($max_row +1), -column => 6 );
 
-  my $button_test = $cw -> Button ( -text=>"Set" , -command=> sub { grabAllowed(); destroy $cw }) -> grid( -row => ($max_row +2), -column => 3 );
+  my $button_set = $cw -> Button ( -text=>"Set" , -command=> sub { grabAllowed(); destroy $cw }) -> grid( -row => ($max_row +2), -column => 3 );
+  my $button_cancel = $cw -> Button ( -text=>"Cancel" , -command=> sub { destroy $cw }) -> grid( -row => ($max_row +2), -column => 6 );
 }
 
 #sub for selecting custom transition set
@@ -259,6 +260,7 @@ sub grabAllowed {
   } else {
     $Custom_Transitions = join(",",@Allowed_Transitions);
   };
+  $Use_Transitions = "2";
 }
 
 # Here is the meat of the action; should be mostly similar to the CLI version
